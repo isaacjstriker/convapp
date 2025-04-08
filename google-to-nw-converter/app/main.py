@@ -1,6 +1,6 @@
 from flask import Flask, request, render_template, send_file
-import os
 from converters.google_to_csv import convert_google_sheet_to_csv
+import os
 
 app = Flask(__name__)
 
@@ -10,15 +10,25 @@ def index():
 
 @app.route('/convert', methods=['POST'])
 def convert():
-    if 'file' not in request.files:
-        return "No file part", 400
-    file = request.files['file']
-    if file.filename == '':
-        return "No selected file", 400
-    if file and file.filename.endswith('.xlsx'):
-        output_file = convert_google_sheet_to_csv(file)
+    #google_sheet_url = request.form.get('google_sheet_url')
+    uploaded_file = request.files.get('file')
+    territory_number = request.form.get('territory_number')
+    
+    # Add google_sheet_url validation back in later:
+    # if not google_sheet_url
+
+    if not uploaded_file or not territory_number:
+        return "Missing required fields", 400
+    
+    try:
+        input_file_path = "uploaded_map.xlsx"
+        uploaded_file.save(input_file_path)
+        # Convert the Google Sheet to CSV
+        output_file = "output.csv"
+        convert_google_sheet_to_csv(input_file_path, output_file, territory_number)
         return send_file(output_file, as_attachment=True)
-    return "Invalid file format", 400
+    except Exception as e:
+        return f"Error: {str(e)}", 500
 
 if __name__ == '__main__':
     app.run(debug=True)

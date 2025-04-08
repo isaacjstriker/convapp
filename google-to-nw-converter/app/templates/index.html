@@ -12,6 +12,14 @@
         <form action="/convert" method="post" enctype="multipart/form-data">
             <label for="file">Upload .xlsx file:</label>
             <input type="file" id="file" name="file" accept=".xlsx" required>
+            
+            <!-- Add google sheets url logic back in later>
+            <label for="google_sheet_url">Google Sheets URL:</label>
+            <input type="url" id="google_sheet_url" name="google_sheet_url"-->
+            
+            <label for="territory_number">Territory Number:</label>
+            <input type="text" id="territory_number" name="territory_number" required>
+
             <button type="submit">Convert</button>
         </form>
         {% if message %}
