@@ -1,81 +1,169 @@
 import pandas as pd
-import csv
-import requests
-from io import BytesIO
 import random
+import csv
+import re
+from datetime import datetime
 
-def convert_google_sheet_to_csv(input_file, output_file, territory_number):
-    '''if "docs.google.com/spreadsheets" in google_sheet_url:
-        google_sheet_url = google_sheet_url.replace('/edit', '/export?format=xlsx').replace('/view', '/export?format=xlsx')
+def extract_date_from_row(row):
+    date_pattern = r'(\d{1,2}/\d{1,2}/\d{2,4})'
+    for val in row:
+        if isinstance(val, str):
+            match = re.search(date_pattern, val)
+            if match:
+                date_str = match.group(1)
+                # Try parsing with 4-digit year first, then 2-digit year
+                for fmt in ("%m/%d/%Y", "%m/%d/%y"):
+                    try:
+                        dt = datetime.strptime(date_str, fmt)
+                        return dt.strftime("%Y/%m/%d")
+                    except ValueError:
+                        continue
+    return "0001/01/01"
 
-    response = requests.get(google_sheet_url)
-    response.raise_for_status()
-    input_file = BytesIO(response.content)'''
-    
+def convert_map_to_nw_format(input_file, output_file, territory_number):
     df = pd.read_excel(input_file)
-
-    # Forward fill data in Columns A and B
-    df[['Town/Zip Code', 'Street/House#']] = df[['Town/Zip Code', 'Street/House#']].fillna('ffill')
-
-    # Handles splitting the town and zip code
+    df['Town/Zip Code'] = df['Town/Zip Code'].fillna(method='ffill')
+    df['Street/House#'] = df['Street/House#'].fillna(method='ffill')
     df[['Suburb', 'PostalCode']] = df['Town/Zip Code'].str.extract(r'(.+)\s+(\d{5})')
-
     processed_data = []
-
     territory_id = random.randint(1000000, 9999999)
-
     used_ids = set()
+    current_street = None
 
-    row_count = 0
-    for _, row in df.iterrows():
-            row_count += 1
-            
-            while True:
-                addr_id = random.randint(1000000, 9999999)
-                if addr_id not in used_ids:
-                    used_ids.add(addr_id)
+    # Merge Phone# and Householder Name for easier logic
+    df['MergedNamePhone'] = df[['Phone#', 'Householder Name']].fillna('').agg(' '.join, axis=1).str.strip()
+
+    # Group apartments by base number and street
+    apartment_groups = {}
+    for idx, row in df.iterrows():
+        street_house = str(row.get("Street/House#", "")).strip()
+        apt_match = re.match(r"(\d+)\s*Apt\s*(\w+)", street_house, re.IGNORECASE)
+        if apt_match:
+            base_number = apt_match.group(1)
+            street = current_street if current_street else ""
+            key = (base_number, row.get('Suburb', ''), row.get('PostalCode', ''), street)
+            if key not in apartment_groups:
+                apartment_groups[key] = []
+            apartment_groups[key].append((idx, apt_match.group(2), street_house))
+
+    # Find single-apartment indices
+    single_apartment_indices = set()
+    for group in apartment_groups.values():
+        if len(group) == 1:
+            idx, _, _ = group[0]
+            single_apartment_indices.add(idx)
+
+    for idx, row in df.iterrows():
+        street_house = str(row.get("Street/House#", "")).strip()
+        householder = str(row.get("Householder Name", "")).strip()
+
+        # If this row is a street name (not starting with a digit), update current_street and skip
+        if street_house and not re.match(r"^\d", street_house):
+            current_street = street_house
+            continue
+
+        # If this row is missing a house number or current_street, skip it
+        number_match = re.match(r"^(\d+)", street_house)
+        has_number = bool(number_match)
+        if not (has_number and current_street):
+            continue
+
+        # Generate unique TerritoryAddressID
+        while True:
+            addr_id = random.randint(1000000, 9999999)
+            if addr_id not in used_ids:
+                used_ids.add(addr_id)
+                break
+
+        street_house = str(row.get("Street/House#", "")).strip()
+        number = None
+        street = current_street
+        apt_match = re.match(r"(\d+)\s*Apt\s*(\w+)", street_house, re.IGNORECASE)
+        if apt_match:
+            number = apt_match.group(1)
+            # Street stays as current_street
+        elif re.match(r"^\d+", street_house):
+            number = street_house.split()[0]
+        else:
+            current_street = street_house
+            street = current_street
+
+        # Apartment logic
+        apartment_number = ""
+        type_field = "House"
+        is_apartment = False
+        for key, group in apartment_groups.items():
+            for group_idx, apt_num, _ in group:
+                if group_idx == idx:
+                    if len(group) == 1:
+                        apartment_number = ""
+                        type_field = "House"
+                    else:
+                        apartment_number = apt_num
+                        type_field = "Apartment"
+                        is_apartment = True
+                        number = key[0]
+                        street = key[3] if key[3] else street
                     break
 
-            street_house = row.get("Street/House#", "")
+        # "___ Family" logic
+        householder = str(row.get("Householder Name", ""))
+        if "Family" in householder:
+            type_field = "House"
 
-            if pd.notna(street_house):  # Check if the value is not NaN
-                street_house = str(street_house).strip()  # Convert to string and strip whitespace
-                number = street_house.split()[0] if len(street_house.split()) > 0 else None
-                street = " ".join(street_house.split()[1:]) if len(street_house.split()) > 1 else None
-            else:
-                number = None
-                street = None
+        # Business logic
+        merged = row.get("MergedNamePhone", "")
+        if "Unknown Resident" not in merged and type_field not in ["Apartment", "House"]:
+            type_field = "Business"
 
-            mailbox_value = row.get("Mailbox Y/N", "")
-            if pd.notna(mailbox_value):  # Check if the value is not NaN
-                mailbox_value = str(mailbox_value).strip().upper()  # Convert to string, strip whitespace, and normalize
-            else:
-                mailbox_value = ""
-            address_type = "House" if mailbox_value == "Y" else "Other"
+        # Notes logic
+        notes = ""
+        alt_mail = str(row.get("Alternative Mailing Address", ""))
+        mailbox = str(row.get("Mailbox Y/N", "")).strip().upper()
+        door_work = str(row.get("Door to Door Work", ""))
+        comments = str(row.get("Comments", ""))
+        if "Unknown Resident" in merged:
+            notes = "No mailing"
+        elif "PO Box" in alt_mail:
+            notes = alt_mail
+        elif mailbox == "N":
+            notes = "No mailing"
+        if comments and comments not in notes:
+            notes = (notes + " " if notes else "") + comments
 
-            processed_row = {
+        # Status and StatusDate logic
+        status = "Available"
+        status_date = "0001/01/01"
+        if "Letter Writing" in door_work:
+            status = "Custom2"
+            status_date = extract_date_from_row(row)
+        elif "Do Not Call" in door_work:
+            status = "DoNotCall"
+            status_date = extract_date_from_row(row)
+
+        processed_row = {
             "TerritoryID": territory_id,
             "TerritoryNumber": territory_number,
             "CategoryCode": "D",
             "Category": "Door to Door",
             "TerritoryAddressID": addr_id,
-            "ApartmentNumber": "",
+            "ApartmentNumber": apartment_number,
             "Number": number,
             "Street": street,
-            "Suburb": row.get("Suburb", None),
-            "PostalCode": row.get("PostalCode", None),
+            "Suburb": row.get("Suburb", ""),
+            "PostalCode": row.get("PostalCode", ""),
             "State": "Vermont",
-            "Name": row.get("Householder Name", None),
-            "Phone": row.get("Phone#", None),
-            "Type": address_type,
-            "Status": "Available",
-            "StatusDate": "0001/01/01",
+            "Name": row.get("Householder Name", ""),
+            "Phone": row.get("Phone#", ""),
+            "Type": type_field,
+            "Status": status,
+            "StatusDate": status_date,
             "Latitude": 0,
             "Longitude": 0,
-            "Notes": row.get("Comments", None),
+            "Notes": notes,
             "NotesFromPublisher": "",
         }
-            processed_data.append(processed_row)
-    
+        processed_data.append(processed_row)
+
     processed_df = pd.DataFrame(processed_data)
     processed_df.to_csv(output_file, index=False, quoting=csv.QUOTE_MINIMAL)

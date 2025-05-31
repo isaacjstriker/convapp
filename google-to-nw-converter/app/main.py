@@ -1,5 +1,5 @@
 from flask import Flask, request, render_template, send_file
-from converters.google_to_csv import convert_google_sheet_to_csv
+from converters.google_to_csv import convert_map_to_nw_format
 import os
 
 app = Flask(__name__)
@@ -25,7 +25,7 @@ def convert():
         uploaded_file.save(input_file_path)
         # Convert the Google Sheet to CSV
         output_file = "output.csv"
-        convert_google_sheet_to_csv(input_file_path, output_file, territory_number)
+        convert_map_to_nw_format(input_file_path, output_file, territory_number)
         return send_file(output_file, as_attachment=True)
     except Exception as e:
         return f"Error: {str(e)}", 500
