@@ -5,15 +5,16 @@ This project is a web application that converts Google Spreadsheet `.xlsx` files
 ## Project Structure
 
 ```
-google-to-nw-converter
-├── app
+google-to-nw-converter/
+├── app/
 │   ├── __init__.py
 │   ├── main.py
-│   ├── converters
+│   ├── converters/
 │   │   ├── __init__.py
 │   │   └── google_to_csv.py
-│   ├── static
-│   └── templates
+│   ├── static/
+│   │   └── index.css
+│   └── templates/
 │       └── index.html
 ├── requirements.txt
 ├── .env
@@ -24,50 +25,55 @@ google-to-nw-converter
 ## Setup Instructions
 
 1. **Clone the repository:**
-   ```
+
+   ```sh
    git clone <repository-url>
    cd google-to-nw-converter
    ```
 
 2. **Create a virtual environment:**
-   ```
-   python -m venv venv
+
+   ```sh
+   python3 -m venv venv
    ```
 
 3. **Activate the virtual environment:**
+
    - On Windows:
-     ```
+     ```sh
      venv\Scripts\activate
      ```
    - On macOS/Linux:
-     ```
+     ```sh
      source venv/bin/activate
      ```
 
 4. **Install the required dependencies:**
-   ```
+
+   ```sh
    pip install -r requirements.txt
    ```
 
-5. **Set up environment variables:**
+5. **Set up environment variables (if needed):**
    Create a `.env` file in the root directory and add any necessary environment variables.
 
 ## Usage
 
 1. **Run the application:**
-   ```
-   python app/main.py
+
+   ```sh
+   python3 app/main.py
    ```
 
 2. **Access the web application:**
-   Open your web browser and go to `http://127.0.0.1:5000`.
+   Open your web browser and go to [http://127.0.0.1:5000](http://127.0.0.1:5000).
 
 3. **Upload a Google Spreadsheet (.xlsx) file:**
-   Use the provided interface to upload your file and initiate the conversion to CSV.
+   Use the web interface to upload your file and convert it to NW Scheduler CSV format.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a pull request or open an issue for any enhancements or bug fixes.
+Contributions are welcome! Please submit a pull request or open an issue for any enhancements or bug fixes.
 
 ## License
 

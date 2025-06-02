@@ -117,10 +117,24 @@ def convert_map_to_nw_format(input_file, output_file, territory_number):
             type_field = "Business"
 
         # Ensure Name is set correctly
-        name = row.get("Householder Name", "")
+        name = str(row.get("Householder Name", "")).strip()
         if not name:
             if "Unknown Resident" in merged or "Family" in merged:
                 name = merged
+
+        # Phone number extraction and validation
+        phone = str(row.get("Phone#", "")).strip()
+
+        # Define a simple phone number pattern (adjust as needed)
+        phone_pattern = r"^\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$"
+
+        # If Phone# is not a phone number and not empty, move it to Name
+        if phone and (not re.match(phone_pattern, phone)):
+            # If Householder Name is empty, use Phone# value as Name
+            if not name or name.lower() == "nan":
+                name = phone
+            # Clear the phone field since it's not a phone number
+            phone = ""
 
         # Notes logic
         notes = ""
@@ -160,7 +174,7 @@ def convert_map_to_nw_format(input_file, output_file, territory_number):
             "PostalCode": row.get("PostalCode", ""),
             "State": "Vermont",
             "Name": name,
-            "Phone": row.get("Phone#", ""),
+            "Phone": phone,
             "Type": type_field,
             "Status": status,
             "StatusDate": status_date,
