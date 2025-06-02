@@ -116,6 +116,12 @@ def convert_map_to_nw_format(input_file, output_file, territory_number):
         if "Unknown Resident" not in merged and type_field not in ["Apartment", "House"]:
             type_field = "Business"
 
+        # Ensure Name is set correctly
+        name = row.get("Householder Name", "")
+        if not name:
+            if "Unknown Resident" in merged or "Family" in merged:
+                name = merged
+
         # Notes logic
         notes = ""
         alt_mail = str(row.get("Alternative Mailing Address", ""))
@@ -153,7 +159,7 @@ def convert_map_to_nw_format(input_file, output_file, territory_number):
             "Suburb": row.get("Suburb", ""),
             "PostalCode": row.get("PostalCode", ""),
             "State": "Vermont",
-            "Name": row.get("Householder Name", ""),
+            "Name": name,
             "Phone": row.get("Phone#", ""),
             "Type": type_field,
             "Status": status,
