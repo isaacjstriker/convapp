@@ -31,8 +31,7 @@ def convert_map_to_nw_format(input_file, output_file, territory_number):
     current_street = None
 
     # Merge Phone# and Householder Name for easier logic
-    df['MergedNamePhone'] = df[['Phone#', 'Householder Name']].fillna('').agg(' '.join, axis=1).str.strip()
-
+    df['MergedNamePhone'] = df[['Phone#', 'Householder Name']].fillna('').astype(str).agg(' '.join, axis=1).str.strip()
     # Group apartments by base number and street
     apartment_groups = {}
     for idx, row in df.iterrows():
@@ -126,7 +125,7 @@ def convert_map_to_nw_format(input_file, output_file, territory_number):
         phone = str(row.get("Phone#", "")).strip()
 
         # Define a simple phone number pattern (adjust as needed)
-        phone_pattern = r"^\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$"
+        phone_pattern = r"^(\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}|\d{10})$"
 
         # If Phone# is not a phone number and not empty, move it to Name
         if phone and (not re.match(phone_pattern, phone)):
@@ -136,30 +135,63 @@ def convert_map_to_nw_format(input_file, output_file, territory_number):
             # Clear the phone field since it's not a phone number
             phone = ""
 
+        def format_phone(phone):
+            digits = re.sub(r'\D', '', phone)
+            if len(digits) == 10:
+                return f"{digits[:3]}-{digits[3:6]}-{digits[6:]}"
+            return phone
+
+        # Format phone number
+        if phone:
+            phone = format_phone(phone)
+
         # Notes logic
         notes = ""
         alt_mail = str(row.get("Alternative Mailing Address", ""))
         mailbox = str(row.get("Mailbox Y/N", "")).strip().upper()
         door_work = str(row.get("Door to Door Work", ""))
-        comments = str(row.get("Comments", ""))
-        if "Unknown Resident" in merged:
-            notes = "No mailing"
-        elif "PO Box" in alt_mail:
-            notes = alt_mail
-        elif mailbox == "N":
-            notes = "No mailing"
-        if comments and comments not in notes:
-            notes = (notes + " " if notes else "") + comments
+        comments = row.get("Comments", "")
 
         # Status and StatusDate logic
         status = "Available"
         status_date = "0001/01/01"
-        if "Letter Writing" in door_work:
-            status = "Custom2"
-            status_date = extract_date_from_row(row)
-        elif "Do Not Call" in door_work:
+
+        if "Do Not Call" in door_work:
             status = "DoNotCall"
             status_date = extract_date_from_row(row)
+            # For Do Not Call, notes should be just the comments (if any)
+            if pd.notna(comments):
+                comments_str = str(comments).strip()
+                if comments_str.lower() != "nan" and comments_str:
+                    notes = comments_str
+            else:
+                notes = ""
+        elif "Letter Writing" in door_work:
+            status = "Custom2"
+            status_date = extract_date_from_row(row)
+            # (You can add similar comment logic here if desired)
+            if pd.notna(comments):
+                comments_str = str(comments).strip()
+                if comments_str.lower() != "nan" and comments_str:
+                    notes = comments_str
+            else:
+                notes = ""
+        else:
+            if "Unknown Resident" in merged:
+                notes = "No mailing"
+            elif "PO Box" in alt_mail:
+                notes = alt_mail
+            elif mailbox == "N":
+                notes = "No mailing"
+            # Only use comments if not NaN and not the string "nan"
+            if pd.notna(comments):
+                comments_str = str(comments).strip()
+                if comments_str.lower() != "nan" and comments_str and comments_str not in notes:
+                    notes = (notes + " " if notes else "") + comments_str
+
+        # Clean up notes: remove 'nan' and strip whitespace
+        if not notes or notes.lower() == "nan":
+            notes = ""
 
         processed_row = {
             "TerritoryID": territory_id,
