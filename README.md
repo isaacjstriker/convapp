@@ -27,7 +27,7 @@ google-to-nw-converter/
 1. **Clone the repository:**
 
    ```sh
-   git clone <repository-url>
+   git clone https://github.com/isaacjstriker/convapp
    cd google-to-nw-converter
    ```
 
