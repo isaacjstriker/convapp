@@ -1,6 +1,6 @@
-# Google to NW Scheduler Converter
+# Convert Me
 
-This project is a web application that converts Google Spreadsheet `.xlsx` files into a CSV format compatible with NW Scheduler. The application is built using Flask and provides a user-friendly interface for file uploads and conversions.
+A web application that converts Google Spreadsheet `.xlsx` files into a CSV format compatible with proprietary software. I built this to automate the migration of spreadsheet information. Uses Flask to create a web server, and the script was written in Python.
 
 ## Project Structure
 
