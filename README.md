@@ -1,80 +1,117 @@
-# Convert Me
+# Convapp
 
-A web application that converts Google Spreadsheet `.xlsx` files into a CSV format compatible with proprietary software. I built this to automate the migration of spreadsheet information. Uses Flask to create a web server, and the script was written in Python.
+Convapp is a small Python web application that converts spreadsheet data from Google Sheets exports (`.xlsx`) into CSV files compatible with a proprietary line-of-business system.
 
-## Project Structure
+It was originally built for a local non-profit that needed to migrate **~25,000 rows** of territory mapping data. A manual approach would have taken months. Convapp automates the entire process, validating and reshaping the data so it can be imported reliably in just a couple of days.
 
+---
+
+## Why I built this
+
+A local non-profit was moving to new software for managing territory data. All of their data lived in Google Sheets, scattered across multiple tabs and columns with inconsistent formatting.
+
+Manually copying this into the new system would have been:
+
+- Error‑prone
+- Extremely time‑consuming
+- Hard to keep in sync as the data changed
+
+I built Convapp to:
+
+- Take their **Google Sheets `.xlsx` exports**,
+- Normalize and validate the data,
+- Output **CSV files** that matched the **exact schema** required by their proprietary software.
+
+This turned a months‑long manual process into a **two‑day automated migration**.
+
+---
+
+## Features
+
+- **XLSX → CSV conversion** customized for the target system’s schema
+- **Data cleaning & transformation** using `pandas`
+- **Schema mapping**:
+  - Maps human‑friendly column names to system fields
+  - Handles type conversions and normalization
+- **Validation & logging**:
+  - Flags and logs problematic rows before export
+  - Helps catch issues early instead of during import
+- Simple **web interface** (via Flask) for running conversions
+
+---
+
+## Tech Stack
+
+- **Backend:** Python, Flask
+- **Data Processing:** `pandas`
+- **Frontend:** HTML, CSS
+- **Other:** CSV, XLSX
+
+---
+
+## How it works (high level)
+
+1. **Upload XLSX**  
+   User uploads a Google Sheets export (or the script reads from a known location).
+
+2. **Parse & validate**  
+   `pandas` reads the workbook into DataFrames, performs type checks, and validates required fields.
+
+3. **Transform**  
+   Data is:
+   - Normalized (e.g., trimming whitespace, standardizing codes)
+   - Mapped to the target CSV schema
+   - Filtered for invalid or incomplete rows
+
+4. **Export CSV**  
+   A clean CSV is generated that can be imported directly into the proprietary system.
+
+5. **Logs & reports**  
+   Any issues (missing fields, invalid codes) are logged for review.
+
+---
+
+## Running locally
+
+> Note: This project was built for a specific client and schema, so it’s more of a **reference implementation** than a generic tool. The steps below illustrate the setup.
+
+### Prerequisites
+
+- Python 3.10+ (or similar)
+- `pip` or `pipenv`/`poetry`
+
+### Setup
+
+```bash
+git clone https://github.com/isaacjstriker/convapp.git
+cd convapp
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the app
+python app.py
 ```
-google-to-nw-converter/
-├── app/
-│   ├── __init__.py
-│   ├── main.py
-│   ├── converters/
-│   │   ├── __init__.py
-│   │   └── google_to_csv.py
-│   ├── static/
-│   │   └── index.css
-│   └── templates/
-│       └── index.html
-├── requirements.txt
-├── .env
-├── .gitignore
-└── README.md
-```
 
-## Setup Instructions
+Then open `http://localhost:5000` (or whatever port is configured) in your browser.
 
-1. **Clone the repository:**
+---
 
-   ```sh
-   git clone https://github.com/isaacjstriker/convapp
-   cd google-to-nw-converter
-   ```
+## Key learning points
 
-2. **Create a virtual environment:**
+Convapp gave me practical experience with:
 
-   ```sh
-   python3 -m venv venv
-   ```
+- Designing a **data pipeline** around messy real-world spreadsheets
+- Using **pandas** for robust transformation and validation
+- Thinking in terms of **schemas**, not just files
+- Building a small but useful **Flask** app to expose that logic to non-technical users
+- Communicating with stakeholders to understand their target system and edge cases
 
-3. **Activate the virtual environment:**
+---
 
-   - On Windows:
-     ```sh
-     venv\Scripts\activate
-     ```
-   - On macOS/Linux:
-     ```sh
-     source venv/bin/activate
-     ```
+## Potential Future improvements (ideas)
 
-4. **Install the required dependencies:**
-
-   ```sh
-   pip install -r requirements.txt
-   ```
-
-5. **Set up environment variables (if needed):**
-   Create a `.env` file in the root directory and add any necessary environment variables.
-
-## Usage
-
-1. **Run the application:**
-
-   ```sh
-   python3 app/main.py
-   ```
-
-2. **Access the web application:**
-   Open your web browser and go to [http://127.0.0.1:5000](http://127.0.0.1:5000).
-
-3. **Upload a Google Spreadsheet (.xlsx) file:**
-   Use the web interface to upload your file and convert it to NW Scheduler CSV format.
-
-## Contributing
-
-Contributions are welcome! Please submit a pull request or open an issue for any enhancements or bug fixes.
-
-## License
-
-This project is licensed under the MIT License.
+- Make the mapping configuration **data‑driven** (e.g., YAML/JSON instead of hard‑coded)
+- Add a simple **UI for mapping columns** between source and target
+- Support **multiple export formats** and schemas
+- Add more robust **test coverage** for unusual edge cases
