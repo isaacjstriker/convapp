@@ -1,8 +1,8 @@
 # Convapp
 
-Convapp is a small Python web application that converts spreadsheet data from Google Sheets exports (`.xlsx`) into CSV files compatible with a proprietary line-of-business system.
+Convapp is a Python tool that converts spreadsheet data from Google Sheets exports (`.xlsx`) into CSV files compatible with a proprietary territory tracking application.
 
-It was originally built for a local non-profit that needed to migrate **~25,000 rows** of territory mapping data. A manual approach would have taken months. Convapp automates the entire process, validating and reshaping the data so it can be imported reliably in just a couple of days.
+It was originally built for a local non-profit that needed to migrate **~25,000 rows** of territory mapping data. A manual approach would have taken months. Convapp automates the entire process, validating and reshaping the data so it can be imported with predictable, reliable results.
 
 ---
 
@@ -18,9 +18,9 @@ Manually copying this into the new system would have been:
 
 I built Convapp to:
 
-- Take their **Google Sheets `.xlsx` exports**,
+- Take their Google Sheets `.xlsx` exports,
 - Normalize and validate the data,
-- Output **CSV files** that matched the **exact schema** required by their proprietary software.
+- Output CSV files that matched the **exact schema** required by their proprietary software.
 
 This turned a months‑long manual process into a **two‑day automated migration**.
 
